@@ -3,7 +3,7 @@ CXX = g++
 CXXFLAGS = -std=c++11 -Wall -Wextra -pedantic
 
 # Source files
-SRCS = main.cpp check_dependency.cpp
+SRCS = main.cpp check_dependency.cpp HandDetector.cpp
 
 # Object files
 OBJS = $(SRCS:.cpp=.o)

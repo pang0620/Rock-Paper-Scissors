@@ -9,8 +9,11 @@ int main() {
     std::cout << "C++: Hand Gesture Detection Demo" << std::endl;
     std::cout << "C++: Press Enter to detect a hand gesture, or type 'q' and Enter to quit." << std::endl;
 
+    // TODO where dependency check???
+
     std::string input_line;
     while (true) {
+        // TODO: not here, get Input at python script?
         std::cout << "\nC++: Waiting for input... ";
         std::getline(std::cin, input_line);
 

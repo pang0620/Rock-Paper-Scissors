@@ -52,6 +52,8 @@ def detect_hand_gesture():
                 landmarks.append([lm.x, lm.y, lm.z])
 
             # Simple gesture recognition logic
+            # TODO: improve this? to another method?
+            
             # Example: Rock (all fingers curled)
             # Paper (all fingers extended)
             # Scissors (index and middle extended, others curled)
@@ -94,6 +96,7 @@ def detect_hand_gesture():
                 gesture = "Unknown" # Fallback for other hand shapes
 
             # For simplicity, we'll just take the first hand detected
+            # NOTE: this program won't capture multiple hands. why do I even need that feature?
             break
 
     cap.release()

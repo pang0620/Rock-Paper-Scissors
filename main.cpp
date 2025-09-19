@@ -27,7 +27,7 @@ int main() {
         return 1; // Exit if dependencies are not met.
     }
 
-    const char* python_command = "python3 -u detection.py";
+    const char* python_command = "./venv_test/bin/python -u detection.py";
 
     std::cerr << "C++: Starting Python detection script..." << std::endl;
     std::cerr << "C++: Look at the camera and make a Rock, Paper, or Scissors gesture." << std::endl;

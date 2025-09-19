@@ -177,22 +177,22 @@ with mp_hands.Hands(
         cv2.putText(image, "You", (90, 75),
                     cv2.FONT_HERSHEY_DUPLEX, 2, (255, 0, 0), 5)
 
-        cv2.putText(image, "CPU", (1050, 75),
+        cv2.putText(image, "CPU", (400, 75),
                     cv2.FONT_HERSHEY_DUPLEX, 2, (0, 0, 255), 5)
 
         cv2.putText(image, player_choice, (45, 375),
                     cv2.FONT_HERSHEY_DUPLEX, 2, (255, 0, 0), 5)
 
-        cv2.putText(image, cpu_choice, (1000, 375),
+        cv2.putText(image, cpu_choice, (400, 375),
                     cv2.FONT_HERSHEY_DUPLEX, 2, (0, 0, 255), 5)
 
-        cv2.putText(image, winner, (530, 650),
+        cv2.putText(image, winner, (200, 250),
                     cv2.FONT_HERSHEY_DUPLEX, 2, winner_colour, 5)
 
         cv2.putText(image, str(player_score), (145, 200),
                     cv2.FONT_HERSHEY_DUPLEX, 2, (255, 0, 0), 5)
 
-        cv2.putText(image, str(cpu_score), (1100, 200),
+        cv2.putText(image, str(cpu_score), (400, 200),
                     cv2.FONT_HERSHEY_DUPLEX, 2, (0, 0, 255), 5)
 
         cv2.imshow('Rock, Paper, Scissors', image)

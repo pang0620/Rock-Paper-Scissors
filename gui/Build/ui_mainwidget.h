@@ -14,6 +14,7 @@
 #include <QtWidgets/QGraphicsView>
 #include <QtWidgets/QHBoxLayout>
 #include <QtWidgets/QPushButton>
+#include <QtWidgets/QTextEdit>
 #include <QtWidgets/QVBoxLayout>
 #include <QtWidgets/QWidget>
 
@@ -27,6 +28,7 @@ public:
     QHBoxLayout *horizontalLayout;
     QGraphicsView *graphicsView_2;
     QGraphicsView *graphicsView;
+    QTextEdit *textEdit;
     QHBoxLayout *horizontalLayout_2;
     QPushButton *pushButton_2;
     QPushButton *pushButton;
@@ -38,7 +40,7 @@ public:
         mainwidget->resize(800, 600);
         verticalLayoutWidget = new QWidget(mainwidget);
         verticalLayoutWidget->setObjectName(QString::fromUtf8("verticalLayoutWidget"));
-        verticalLayoutWidget->setGeometry(QRect(10, 10, 781, 571));
+        verticalLayoutWidget->setGeometry(QRect(10, 10, 781, 581));
         verticalLayout = new QVBoxLayout(verticalLayoutWidget);
         verticalLayout->setObjectName(QString::fromUtf8("verticalLayout"));
         verticalLayout->setContentsMargins(0, 0, 0, 0);
@@ -57,6 +59,11 @@ public:
 
         verticalLayout->addLayout(horizontalLayout);
 
+        textEdit = new QTextEdit(verticalLayoutWidget);
+        textEdit->setObjectName(QString::fromUtf8("textEdit"));
+
+        verticalLayout->addWidget(textEdit);
+
         horizontalLayout_2 = new QHBoxLayout();
         horizontalLayout_2->setObjectName(QString::fromUtf8("horizontalLayout_2"));
         pushButton_2 = new QPushButton(verticalLayoutWidget);
@@ -72,6 +79,8 @@ public:
 
         verticalLayout->addLayout(horizontalLayout_2);
 
+        verticalLayout->setStretch(0, 5);
+        verticalLayout->setStretch(1, 3);
 
         retranslateUi(mainwidget);
 

@@ -64,6 +64,19 @@ void mainwidget::on_pushButton_2_clicked()
         if (cap2.isOpened()) timer2.start(30);
 
         cameraOpened = true;
+        ui->pushButton_2->setText("Camera Close");
+    }
+    else
+    {
+        timer1.stop();
+        timer2.stop();
+        if(cap1.isOpened()) cap1.release();
+        if(cap2.isOpened()) cap2.release();
+
+        scene1->clear();
+        scene2->clear();
+        cameraOpened = false;
+        ui->pushButton_2->setText("Camera Open");
     }
 }
 

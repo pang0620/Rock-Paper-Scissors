@@ -2,12 +2,11 @@
 #define MAINWIDGET_H
 
 #include <QWidget>
-#include <QTimer>
 #include <QGraphicsScene>
-#include <opencv2/opencv.hpp>
+#include <QTimer>
 #include <QProcess>
 #include <QTcpSocket>
-#include <QDebug>
+#include <opencv2/opencv.hpp>
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class mainwidget; }
@@ -18,17 +17,27 @@ class mainwidget : public QWidget
     Q_OBJECT
 
 public:
-    explicit mainwidget(QWidget *parent = nullptr);
+    mainwidget(QWidget *parent = nullptr);
     ~mainwidget();
+
     void setDetectionUrl(const QString& url);
 
 private slots:
+    // --- UI 버튼 슬롯 --- //
+    void on_pushButton_clicked();   // Ready 버튼
+    void on_pushButton_2_clicked(); // Camera Open 버튼
+
+    // --- 카메라 업데이트 --- //
     void updateFrame1();
     void updateFrame2();
 
-    void on_pushButton_clicked();	// detection process 실행 버튼
-    void on_pushButton_2_clicked();   // Camera Open 버튼
+    // --- 서버 통신 슬롯 --- //
+    void onConnected();
+    void onDisconnected();
+    void onReadyReadSocket();
+    void onErrorOccurred(QAbstractSocket::SocketError socketError);
 
+    // --- Client 프로세스 출력 처리 --- //
     void onReadyReadStandardOutput();
     void onReadyReadStandardError();
     void onProcessFinished(int exitCode, QProcess::ExitStatus exitStatus);
@@ -36,38 +45,33 @@ private slots:
 private:
     Ui::mainwidget *ui;
 
+    // --- 카메라 --- //
+    QGraphicsScene *scene1;
+    QGraphicsScene *scene2;
     cv::VideoCapture cap1;
     cv::VideoCapture cap2;
     QTimer timer1;
     QTimer timer2;
+    bool cameraOpened = false;
 
-    QGraphicsScene *scene1;
-    QGraphicsScene *scene2;
-
+    // --- Client 프로세스 --- //
     QProcess *m_process;
     QString m_detectionUrl;
 
-    // --- Server Communication --- //
+    // --- 서버 통신 --- //
     QTcpSocket *m_socket;
-    QString m_serverIp; // Hardcoded for now
-    quint16 m_serverPort; // Hardcoded for now
-    QString m_userId; // Hardcoded for now
-    QString m_userPw; // Hardcoded for now
+    QString m_serverIp;
+    int m_serverPort;
+    QString m_userId;
+    QString m_userPw;
 
-    int m_currentRound; // Current game round from server
-    bool m_isReadyForHand; // Flag: true when START_ROUND is received
+    // --- 게임 상태 --- //
+    int m_currentRound;
+    bool m_isReadyForHand;
 
-    // --- Slots for QTcpSocket --- //
-    void onConnected();
-    void onDisconnected();
-    void onReadyReadSocket();
-    void onErrorOccurred(QAbstractSocket::SocketError socketError);
-
-    // --- Methods for Server Communication --- //
+    // --- 내부 함수 --- //
     void connectToServer();
     void sendHandToServer(const QString& hand);
-
-    bool cameraOpened = false;
 };
 
 #endif // MAINWIDGET_H

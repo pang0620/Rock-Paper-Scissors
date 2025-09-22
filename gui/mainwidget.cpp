@@ -3,9 +3,9 @@
 #include <QImage>
 #include <QPixmap>
 #include <QProcess>
-#include <QDebug>
 #include <QTcpSocket>
 #include <QHostAddress>
+#include <QDebug>
 
 mainwidget::mainwidget(QWidget *parent)
     : QWidget(parent)
@@ -13,7 +13,7 @@ mainwidget::mainwidget(QWidget *parent)
 {
     ui->setupUi(this);
 
-    // Set default detection URL
+    // 기본 스트리밍 URL
     m_detectionUrl = "http://127.0.0.1:8081/?action=stream";
 
     scene1 = new QGraphicsScene(this);
@@ -29,16 +29,15 @@ mainwidget::mainwidget(QWidget *parent)
 
     connect(m_process, &QProcess::readyReadStandardOutput, this, &mainwidget::onReadyReadStandardOutput);
     connect(m_process, &QProcess::readyReadStandardError, this, &mainwidget::onReadyReadStandardError);
-    connect(m_process, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished), this, &mainwidget::onProcessFinished);
+    connect(m_process, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished),
+            this, &mainwidget::onProcessFinished);
 
-    // --- Server Communication Initialization --- //
+    // --- 서버 통신 초기화 --- //
     m_socket = new QTcpSocket(this);
-    // Hardcoded server IP and Port for now - TODO: Make configurable
-    m_serverIp = "127.0.0.1"; // TODO: Make configurable
-    m_serverPort = 5000;      // TODO: Make configurable
-    // Hardcoded user credentials for now - TODO: Make configurable
-    m_userId = "1";          // TODO: Make configurable
-    m_userPw = "PASSWD";       // TODO: Make configurable
+    m_serverIp = "10.10.16.37";  // 서버 IP
+    m_serverPort = 5000;
+    m_userId = "2";
+    m_userPw = "PASSWD";
 
     m_currentRound = 0;
     m_isReadyForHand = false;
@@ -46,7 +45,8 @@ mainwidget::mainwidget(QWidget *parent)
     connect(m_socket, &QTcpSocket::connected, this, &mainwidget::onConnected);
     connect(m_socket, &QTcpSocket::disconnected, this, &mainwidget::onDisconnected);
     connect(m_socket, &QTcpSocket::readyRead, this, &mainwidget::onReadyReadSocket);
-    connect(m_socket, QOverload<QAbstractSocket::SocketError>::of(&QTcpSocket::errorOccurred), this, &mainwidget::onErrorOccurred);
+    connect(m_socket, QOverload<QAbstractSocket::SocketError>::of(&QTcpSocket::errorOccurred),
+            this, &mainwidget::onErrorOccurred);
 }
 
 mainwidget::~mainwidget()
@@ -55,13 +55,11 @@ mainwidget::~mainwidget()
     if (cap2.isOpened()) cap2.release();
     delete ui;
 
-    if (m_process->state() == QProcess::Running)
-    {
+    if (m_process->state() == QProcess::Running) {
         m_process->kill();
         m_process->waitForFinished();
     }
 
-    // Ensure socket is properly closed on destruction
     if (m_socket->isOpen()) {
         m_socket->disconnectFromHost();
         m_socket->waitForDisconnected();
@@ -75,32 +73,34 @@ void mainwidget::setDetectionUrl(const QString& url)
     qDebug() << "Detection URL set to:" << m_detectionUrl;
 }
 
-// --- Server Communication Methods --- //
+// --- 서버 연결 --- //
 void mainwidget::connectToServer()
 {
     qDebug() << "Attempting to connect to server at" << m_serverIp << ":" << m_serverPort;
     m_socket->connectToHost(m_serverIp, m_serverPort);
 }
 
+// --- 서버에 손패 전송 --- //
 void mainwidget::sendHandToServer(const QString& hand)
 {
     if (m_socket->state() == QAbstractSocket::ConnectedState && m_isReadyForHand && m_currentRound > 0) {
         QString message = QString("HAND:%1:%2\n").arg(hand.toLower()).arg(m_currentRound);
         qDebug() << "Sending to server:" << message.trimmed();
         m_socket->write(message.toUtf8());
-        m_isReadyForHand = false; // Hand sent for this round
+        m_isReadyForHand = false;
     } else {
-        qDebug() << "Not ready to send hand to server. State:" << m_socket->state()
-                 << ", Ready for hand:" << m_isReadyForHand
-                 << ", Current Round:" << m_currentRound;
+        qDebug() << "Not ready to send hand. State=" << m_socket->state()
+                 << " Ready=" << m_isReadyForHand
+                 << " Round=" << m_currentRound;
     }
 }
 
 // --- QTcpSocket Slots --- //
 void mainwidget::onConnected()
 {
-    qDebug() << "Connected to server!";
-    // Send authentication immediately after connecting
+    // ✅ UI에만 표시
+    ui->textEdit->append("Connected to server!");
+
     QString auth = QString("%1:%2\n").arg(m_userId).arg(m_userPw);
     m_socket->write(auth.toUtf8());
     qDebug() << "Sent authentication:" << auth.trimmed();
@@ -108,7 +108,9 @@ void mainwidget::onConnected()
 
 void mainwidget::onDisconnected()
 {
-    qDebug() << "Disconnected from server.";
+    // ✅ UI에만 표시
+    ui->textEdit->append("Disconnected from server.");
+
     m_currentRound = 0;
     m_isReadyForHand = false;
 }
@@ -119,7 +121,6 @@ void mainwidget::onReadyReadSocket()
     QString response = QString::fromUtf8(data).trimmed();
     qDebug() << "Received from server:" << response;
 
-    // Simple parsing for server messages
     if (response.startsWith("WELCOME:")) {
         qDebug() << "Server Welcome:" << response;
     } else if (response == "WAIT") {
@@ -128,8 +129,7 @@ void mainwidget::onReadyReadSocket()
         m_currentRound = response.section(':', 1, 1).toInt();
         m_isReadyForHand = true;
         qDebug() << "Round" << m_currentRound << "started! Ready for hand detection.";
-        // --- Trigger client/main for detection --- //
-        qDebug() << "Starting client process for detection...";
+
         if (m_process->state() == QProcess::Running) {
             m_process->kill();
             m_process->waitForFinished();
@@ -140,7 +140,7 @@ void mainwidget::onReadyReadSocket()
         args << m_detectionUrl;
         m_process->setArguments(args);
         m_process->start();
-
+        qDebug() << "Client process started for detection.";
     } else if (response.startsWith("RESULT:")) {
         qDebug() << "Game Result:" << response;
     } else if (response.startsWith("ERROR:")) {
@@ -155,32 +155,47 @@ void mainwidget::onErrorOccurred(QAbstractSocket::SocketError socketError)
     qDebug() << "Socket Error:" << socketError << m_socket->errorString();
 }
 
-// --- UI Button Slots --- //
+// --- 버튼 슬롯 --- //
 void mainwidget::on_pushButton_clicked()
 {
-    qDebug() << "'Ready' button clicked. Attempting to connect to server.";
+    qDebug() << "'Ready' button clicked.";
     connectToServer();
 }
 
 void mainwidget::on_pushButton_2_clicked()
 {
-    qDebug() << "'Camera Open' button clicked. Attempting to connect to server.";
-    // User requested to connect to server on this button click
+    qDebug() << "'Camera Open' button clicked.";
     connectToServer();
 
     if (!cameraOpened) {
-        // 두 개의 카메라 스트리밍 URL
-        cap1.open("http://10.10.16.36:8081/?action=stream");   // 첫 번째 카메라
-        //cap1.open(0);
-        cap2.open("http://10.10.16.37:8081/?action=stream");    // 두 번째 카메라 (IP 수정)
+        cap1.open("http://10.10.16.36:8081/?action=stream");
+        cap2.open("http://10.10.16.37:8081/?action=stream");
 
         if (cap1.isOpened()) timer1.start(30);
         if (cap2.isOpened()) timer2.start(30);
 
         cameraOpened = true;
+        qDebug() << "Cameras opened.";
+        ui->pushButton_2->setText("Camera Close");
+    }
+    else {
+        timer1.stop();
+        timer2.stop();
+        if (cap1.isOpened()) cap1.release();
+        if (cap2.isOpened()) cap2.release();
+        scene1->clear();
+        scene2->clear();
+
+        if (m_socket->state() == QAbstractSocket::ConnectedState) {
+            m_socket->disconnectFromHost();
+        }
+
+        cameraOpened = false;
+        ui->pushButton_2->setText("Camera Open");
     }
 }
 
+// --- 카메라 업데이트 --- //
 void mainwidget::updateFrame1()
 {
     cv::Mat frame;
@@ -205,25 +220,22 @@ void mainwidget::updateFrame2()
     }
 }
 
+// --- Client 프로세스 출력 처리 --- //
 void mainwidget::onReadyReadStandardOutput()
 {
     QByteArray data = m_process->readAllStandardOutput();
     QString detectedGesture = QString::fromUtf8(data).trimmed();
-    qDebug() << "Detected Gesture from client:" << detectedGesture;
-
-    // Send detected gesture to server if ready for hand
+    qDebug() << "Detected Gesture:" << detectedGesture;
     sendHandToServer(detectedGesture);
 }
 
 void mainwidget::onReadyReadStandardError()
 {
     QByteArray errorData = m_process->readAllStandardError();
-    qDebug() << "Client Stderr:" << errorData.trimmed();
+    qDebug() << "Client Stderr:" << QString::fromUtf8(errorData).trimmed();
 }
 
 void mainwidget::onProcessFinished(int exitCode, QProcess::ExitStatus exitStatus)
 {
-    qDebug() << "Client process finished with exit code " << exitCode;
-    // Reset m_isReadyForHand if the process finished without sending a hand, or if it's a new round
-    // This might need more sophisticated logic depending on game flow
+    qDebug() << "Client process finished. Exit code=" << exitCode;
 }

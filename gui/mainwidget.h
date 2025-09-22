@@ -6,8 +6,8 @@
 #include <QGraphicsScene>
 #include <opencv2/opencv.hpp>
 #include <QProcess>
-#include <QTcpSocket>
 #include <QDebug>
+#include <QTcpSocket> // Added for QTcpSocket
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class mainwidget; }
@@ -20,7 +20,7 @@ class mainwidget : public QWidget
 public:
     explicit mainwidget(QWidget *parent = nullptr);
     ~mainwidget();
-    void setDetectionUrl(const QString& url);
+    void setDetectionUrl(const QString& url); // Already existed
 
 private slots:
     void updateFrame1();
@@ -32,6 +32,16 @@ private slots:
     void onReadyReadStandardOutput();
     void onReadyReadStandardError();
     void onProcessFinished(int exitCode, QProcess::ExitStatus exitStatus);
+
+    // --- Slots for QTcpSocket --- //
+    void onConnected();
+    void onDisconnected();
+    void onReadyReadSocket();
+    void onErrorOccurred(QAbstractSocket::SocketError socketError);
+
+    // --- Methods for Server Communication --- //
+    void connectToServer();
+    void sendHandToServer(const QString& hand);
 
 private:
     Ui::mainwidget *ui;
@@ -56,16 +66,7 @@ private:
 
     int m_currentRound; // Current game round from server
     bool m_isReadyForHand; // Flag: true when START_ROUND is received
-
-    // --- Slots for QTcpSocket --- //
-    void onConnected();
-    void onDisconnected();
-    void onReadyReadSocket();
-    void onErrorOccurred(QAbstractSocket::SocketError socketError);
-
-    // --- Methods for Server Communication --- //
-    void connectToServer();
-    void sendHandToServer(const QString& hand);
+    QString m_lastDetectedGesture; // Holds the last detected gesture
 
     bool cameraOpened = false;
 };

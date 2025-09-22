@@ -47,6 +47,13 @@ mainwidget::mainwidget(QWidget *parent)
     connect(m_socket, &QTcpSocket::disconnected, this, &mainwidget::onDisconnected);
     connect(m_socket, &QTcpSocket::readyRead, this, &mainwidget::onReadyReadSocket);
     connect(m_socket, QOverload<QAbstractSocket::SocketError>::of(&QTcpSocket::errorOccurred), this, &mainwidget::onErrorOccurred);
+
+    // Initially hide opponent's view
+    ui->graphicsView_2->setVisible(false);
+
+    // Set initial button states
+    ui->pushButton->setEnabled(false); // Disable Ready button initially
+    ui->pushButton_2->setEnabled(true);  // Enable Camera Open button initially
 }
 
 mainwidget::~mainwidget()
@@ -88,7 +95,8 @@ void mainwidget::sendHandToServer(const QString& hand)
         QString message = QString("HAND:%1:%2\n").arg(hand.toLower()).arg(m_currentRound);
         qDebug() << "Sending to server:" << message.trimmed();
         m_socket->write(message.toUtf8());
-        m_isReadyForHand = false; // Hand sent for this round
+        m_isReadyForHand = false; // Hand sent for this round, stop retrying
+        ui->pushButton->setEnabled(false); // Disable ready button after sending
     } else {
         qDebug() << "Not ready to send hand to server. State:" << m_socket->state()
                  << ", Ready for hand:" << m_isReadyForHand
@@ -100,6 +108,9 @@ void mainwidget::sendHandToServer(const QString& hand)
 void mainwidget::onConnected()
 {
     qDebug() << "Connected to server!";
+    // Ensure the connect button is disabled now that we are connected.
+    ui->pushButton_2->setEnabled(false);
+
     // Send authentication immediately after connecting
     QString auth = QString("%1:%2\n").arg(m_userId).arg(m_userPw);
     m_socket->write(auth.toUtf8());
@@ -111,6 +122,11 @@ void mainwidget::onDisconnected()
     qDebug() << "Disconnected from server.";
     m_currentRound = 0;
     m_isReadyForHand = false;
+    ui->graphicsView_2->setVisible(false); // Hide opponent's view
+
+    // Reset button states for a new connection attempt
+    ui->pushButton_2->setEnabled(true); // Re-enable connect button
+    ui->pushButton->setEnabled(false);  // Disable ready button
 }
 
 void mainwidget::onReadyReadSocket()
@@ -127,14 +143,16 @@ void mainwidget::onReadyReadSocket()
     } else if (response.startsWith("START_ROUND:")) {
         m_currentRound = response.section(':', 1, 1).toInt();
         m_isReadyForHand = true;
-        qDebug() << "Round" << m_currentRound << "started! Ready for hand detection.";
-        // --- Trigger client/main for detection --- //
-        qDebug() << "Starting client process for detection...";
+        qDebug() << "Round" << m_currentRound << "started! Starting client process for detection.";
+        ui->graphicsView_2->setVisible(true); // Show opponent's view (or placeholder)
+        ui->pushButton->setEnabled(true); // Enable the ready button for the user
+
+        // --- Start client/main for detection --- //
         if (m_process->state() == QProcess::Running) {
             m_process->kill();
             m_process->waitForFinished();
         }
-        m_process->setWorkingDirectory("../client");
+        m_process->setWorkingDirectory("../../client");
         m_process->setProgram("./main");
         QStringList args;
         args << m_detectionUrl;
@@ -143,36 +161,52 @@ void mainwidget::onReadyReadSocket()
 
     } else if (response.startsWith("RESULT:")) {
         qDebug() << "Game Result:" << response;
+        // Hide opponent's view until next round starts
+        ui->graphicsView_2->setVisible(false);
+
     } else if (response.startsWith("ERROR:")) {
         qDebug() << "Server Error:" << response;
     } else if (response == "OPPONENT_LEFT") {
         qDebug() << "Opponent left the game.";
+        onDisconnected(); // Treat as a disconnect
     }
 }
 
 void mainwidget::onErrorOccurred(QAbstractSocket::SocketError socketError)
 {
     qDebug() << "Socket Error:" << socketError << m_socket->errorString();
+    // Also treat connection refused as a disconnect scenario to re-enable button
+    if (socketError == QAbstractSocket::ConnectionRefusedError) {
+        onDisconnected();
+    }
 }
 
 // --- UI Button Slots --- //
 void mainwidget::on_pushButton_clicked()
 {
-    qDebug() << "'Ready' button clicked. Attempting to connect to server.";
-    connectToServer();
+    qDebug() << "'Ready' button clicked. Sending gesture:" << m_lastDetectedGesture;
+
+    // Only send if the gesture is valid
+    if (m_lastDetectedGesture != "Nothing" && m_lastDetectedGesture != "Unknown" && !m_lastDetectedGesture.isEmpty()) {
+        sendHandToServer(m_lastDetectedGesture);
+    } else {
+        qDebug() << "No valid gesture to send. Show a valid hand to the camera.";
+        // Optionally, provide feedback to the user via a status bar or label
+    }
 }
 
 void mainwidget::on_pushButton_2_clicked()
 {
-    qDebug() << "'Camera Open' button clicked. Attempting to connect to server.";
-    // User requested to connect to server on this button click
+    qDebug() << "'Camera Open' button clicked. Opening camera and connecting to server.";
+    // This button now handles both camera and connection.
     connectToServer();
+    ui->pushButton_2->setEnabled(false); // Disable button to prevent re-clicks
 
     if (!cameraOpened) {
         // 두 개의 카메라 스트리밍 URL
-        cap1.open("http://10.10.16.36:8081/?action=stream");   // 첫 번째 카메라
+        cap1.open("http://127.0.0.1:8081/?action=stream");   // 첫 번째 카메라
         //cap1.open(0);
-        cap2.open("http://10.10.16.37:8081/?action=stream");    // 두 번째 카메라 (IP 수정)
+        cap2.open("http://10.10.16.36:8081/?action=stream");    // 두 번째 카메라 (IP 수정)
 
         if (cap1.isOpened()) timer1.start(30);
         if (cap2.isOpened()) timer2.start(30);
@@ -197,11 +231,13 @@ void mainwidget::updateFrame2()
 {
     cv::Mat frame;
     if (cap2.read(frame)) {
-        cv::cvtColor(frame, frame, cv::COLOR_BGR2RGB);
-        QImage img((const uchar*)frame.data, frame.cols, frame.rows, frame.step, QImage::Format_RGB888);
-        scene2->clear();
-        scene2->addPixmap(QPixmap::fromImage(img));
-        ui->graphicsView_2->fitInView(scene2->itemsBoundingRect(), Qt::KeepAspectRatio);
+        if (ui->graphicsView_2->isVisible()) {
+            cv::cvtColor(frame, frame, cv::COLOR_BGR2RGB);
+            QImage img((const uchar*)frame.data, frame.cols, frame.rows, frame.step, QImage::Format_RGB888);
+            scene2->clear();
+            scene2->addPixmap(QPixmap::fromImage(img));
+            ui->graphicsView_2->fitInView(scene2->itemsBoundingRect(), Qt::KeepAspectRatio);
+        }
     }
 }
 
@@ -209,11 +245,15 @@ void mainwidget::onReadyReadStandardOutput()
 {
     QByteArray data = m_process->readAllStandardOutput();
     QString detectedGesture = QString::fromUtf8(data).trimmed();
-    qDebug() << "Detected Gesture from client:" << detectedGesture;
+    qDebug() << "Client stdout (gesture):" << detectedGesture;
 
-    // Send detected gesture to server if ready for hand
-    sendHandToServer(detectedGesture);
+    // Just store the latest detected gesture. Sending is now manual via the Ready button.
+    m_lastDetectedGesture = detectedGesture;
+
+    // TODO: Update a QLabel in the UI to show the user the value of m_lastDetectedGesture
+    // For example: ui->gestureLabel->setText(m_lastDetectedGesture);
 }
+
 
 void mainwidget::onReadyReadStandardError()
 {
@@ -224,6 +264,20 @@ void mainwidget::onReadyReadStandardError()
 void mainwidget::onProcessFinished(int exitCode, QProcess::ExitStatus exitStatus)
 {
     qDebug() << "Client process finished with exit code " << exitCode;
-    // Reset m_isReadyForHand if the process finished without sending a hand, or if it's a new round
-    // This might need more sophisticated logic depending on game flow
+    // If the process finished and we are still waiting for a hand (m_isReadyForHand is true)
+    // and the hand hasn't been sent yet (sendHandToServer sets m_isReadyForHand to false upon success),
+    // it means the last detection was invalid or failed, and we need to retry.
+    if (m_isReadyForHand) {
+        qDebug() << "Client process finished, but no valid hand sent. Retrying...";
+        if (m_process->state() == QProcess::Running) {
+            m_process->kill();
+            m_process->waitForFinished();
+        }
+        m_process->setWorkingDirectory("../client");
+        m_process->setProgram("./main");
+        QStringList args;
+        args << m_detectionUrl;
+        m_process->setArguments(args);
+        m_process->start();
+    }
 }

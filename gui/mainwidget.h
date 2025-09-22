@@ -6,6 +6,7 @@
 #include <QGraphicsScene>
 #include <opencv2/opencv.hpp>
 #include <QProcess>
+#include <QTcpSocket>
 #include <QDebug>
 
 QT_BEGIN_NAMESPACE
@@ -45,6 +46,26 @@ private:
 
     QProcess *m_process;
     QString m_detectionUrl;
+
+    // --- Server Communication --- //
+    QTcpSocket *m_socket;
+    QString m_serverIp; // Hardcoded for now
+    quint16 m_serverPort; // Hardcoded for now
+    QString m_userId; // Hardcoded for now
+    QString m_userPw; // Hardcoded for now
+
+    int m_currentRound; // Current game round from server
+    bool m_isReadyForHand; // Flag: true when START_ROUND is received
+
+    // --- Slots for QTcpSocket --- //
+    void onConnected();
+    void onDisconnected();
+    void onReadyReadSocket();
+    void onErrorOccurred(QAbstractSocket::SocketError socketError);
+
+    // --- Methods for Server Communication --- //
+    void connectToServer();
+    void sendHandToServer(const QString& hand);
 
     bool cameraOpened = false;
 };

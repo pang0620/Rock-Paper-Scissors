@@ -152,6 +152,7 @@ void mainwidget::onReadyReadSocket()
             m_process->kill();
             m_process->waitForFinished();
         }
+        m_lastDetectedGesture.clear(); // Clear previous gesture before new detection
         m_process->setWorkingDirectory("../../client");
         m_process->setProgram("./main");
         QStringList args;
@@ -244,14 +245,15 @@ void mainwidget::updateFrame2()
 void mainwidget::onReadyReadStandardOutput()
 {
     QByteArray data = m_process->readAllStandardOutput();
-    QString detectedGesture = QString::fromUtf8(data).trimmed();
-    qDebug() << "Client stdout (gesture):" << detectedGesture;
+    QString output = QString::fromUtf8(data).trimmed();
+    qDebug() << "Client stdout (raw):" << output;
 
-    // Just store the latest detected gesture. Sending is now manual via the Ready button.
-    m_lastDetectedGesture = detectedGesture;
-
-    // TODO: Update a QLabel in the UI to show the user the value of m_lastDetectedGesture
-    // For example: ui->gestureLabel->setText(m_lastDetectedGesture);
+    // Expected format: "C++ | Detected Gesture: [GestureName]"
+    if (output.contains("Detected Gesture: [")) {
+        QString gesture = output.section('[', 1, 1).section(']', 0, 0);
+        m_lastDetectedGesture = gesture;
+        qDebug() << "Parsed gesture:" << m_lastDetectedGesture;
+    }
 }
 
 
@@ -264,20 +266,25 @@ void mainwidget::onReadyReadStandardError()
 void mainwidget::onProcessFinished(int exitCode, QProcess::ExitStatus exitStatus)
 {
     qDebug() << "Client process finished with exit code " << exitCode;
-    // If the process finished and we are still waiting for a hand (m_isReadyForHand is true)
-    // and the hand hasn't been sent yet (sendHandToServer sets m_isReadyForHand to false upon success),
-    // it means the last detection was invalid or failed, and we need to retry.
-    if (m_isReadyForHand) {
-        qDebug() << "Client process finished, but no valid hand sent. Retrying...";
+
+    bool isValidGesture = (m_lastDetectedGesture != "Nothing" && m_lastDetectedGesture != "Unknown" && !m_lastDetectedGesture.isEmpty());
+
+    // Only retry if we are in an active round AND the last gesture was not valid.
+    if (m_isReadyForHand && !isValidGesture) {
+        qDebug() << "Client process finished with an invalid gesture. Retrying...";
         if (m_process->state() == QProcess::Running) {
             m_process->kill();
             m_process->waitForFinished();
         }
-        m_process->setWorkingDirectory("../client");
+        m_lastDetectedGesture.clear(); // Clear previous gesture before retrying
+        m_process->setWorkingDirectory("../../client");
         m_process->setProgram("./main");
         QStringList args;
         args << m_detectionUrl;
         m_process->setArguments(args);
         m_process->start();
+    } else if (m_isReadyForHand && isValidGesture) {
+        qDebug() << "Client process finished with a valid gesture (" << m_lastDetectedGesture << "). Waiting for user to click 'Ready'.";
+        // Do nothing, just wait for the user to press the ready button.
     }
 }

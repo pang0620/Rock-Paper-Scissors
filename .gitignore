@@ -4,6 +4,9 @@ Plots.py
 env
 venv_test
 
+gui/Build
+gui/test03.pro.user
+
 # For Mac
 .DS_Store
 

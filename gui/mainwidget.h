@@ -19,6 +19,7 @@ class mainwidget : public QWidget
 public:
     explicit mainwidget(QWidget *parent = nullptr);
     ~mainwidget();
+    void setDetectionUrl(const QString& url);
 
 private slots:
     void updateFrame1();
@@ -43,6 +44,7 @@ private:
     QGraphicsScene *scene2;
 
     QProcess *m_process;
+    QString m_detectionUrl;
 
     bool cameraOpened = false;
 };

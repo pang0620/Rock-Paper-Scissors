@@ -3,32 +3,24 @@
 #include <limits> // Required for std::numeric_limits
 #include "HandDetector.h" // Include our new HandDetector class
 
-int main() {
+int main(int argc, char* argv[]) {
+    if (argc < 2) {
+        std::cerr << "Usage: " << argv[0] << " <video_source_url>" << std::endl;
+        return 1;
+    }
+
     HandDetector detector; // Create an instance of our hand detector
+    std::string video_source = argv[1];
 
-    std::cout << "C++: Hand Gesture Detection Demo" << std::endl;
-    std::cout << "C++: Press Enter to detect a hand gesture, or type 'q' and Enter to quit." << std::endl;
+    std::cout << "C++: Performing single hand gesture detection on " << video_source << std::endl;
 
-    // TODO where dependency check???
-
-    std::string input_line;
-    while (true) {
-        // TODO: not here, get Input at python script?
-        //std::cout << "\nC++: Waiting for input... ";
-        //std::getline(std::cin, input_line);
-
-        if (input_line == "q" || input_line == "Q") {
-            std::cout << "C++: Exiting demo." << std::endl;
-            break;
-        }
-
-        try {
-            std::string gesture = detector.detect();
-            std::cout << "C++ | Detected Gesture: [" << gesture << "]" << std::endl;
-        } catch (const std::runtime_error& e) {
-            std::cerr << "C++ | Error during detection: " << e.what() << std::endl;
-            // Depending on the error, you might want to exit or continue
-        }
+    try {
+        // Call detect with the specified video source
+        std::string gesture = detector.detect(video_source);
+        std::cout << "C++ | Detected Gesture: [" << gesture << "]" << std::endl;
+    } catch (const std::runtime_error& e) {
+        std::cerr << "C++ | Error during detection: " << e.what() << std::endl;
+        return 1; // Return an error code
     }
 
     return 0;

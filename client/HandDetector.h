@@ -7,7 +7,7 @@
 class HandDetector {
 public:
     HandDetector();
-    std::string detect();
+    std::string detect(const std::string& video_source);
 
 private:
     // Helper function to execute a shell command and capture its output

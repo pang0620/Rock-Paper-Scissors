@@ -12,11 +12,11 @@ hands = mp_hands.Hands(
 )
 mp_draw = mp.solutions.drawing_utils
 
-def detect_hand_gesture():
-    cap = cv2.VideoCapture(0) # Use default camera
+def detect_hand_gesture(video_source):
+    cap = cv2.VideoCapture(video_source) # Use video source from argument
 
     if not cap.isOpened():
-        print("Error: Could not open video stream.", file=sys.stderr)
+        print(f"Error: Could not open video stream with source: {video_source}", file=sys.stderr)
         return "ERROR: Camera not found"
 
     # Give the camera a moment to warm up and get a stable frame
@@ -103,5 +103,11 @@ def detect_hand_gesture():
     return gesture
 
 if __name__ == "__main__":
-    detected_gesture = detect_hand_gesture()
+    if len(sys.argv) > 1:
+        video_source = sys.argv[1]
+    else:
+        print("Error: Video source URL must be provided as a command-line argument.", file=sys.stderr)
+        sys.exit(1)
+
+    detected_gesture = detect_hand_gesture(video_source)
     print(detected_gesture)

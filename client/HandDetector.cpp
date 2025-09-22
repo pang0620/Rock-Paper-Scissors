@@ -43,7 +43,7 @@ std::string HandDetector::exec(const char* cmd) {
 }
 
 
-std::string HandDetector::detect() {
+std::string HandDetector::detect(const std::string& video_source) {
     // Check and install dependencies if needed.
     // This ensures dependencies are ready before the Python script is called.
     if (!checkAndInstallDependencies()) {
@@ -51,13 +51,15 @@ std::string HandDetector::detect() {
         return "ERROR: Dependencies not met";
     }
 
-    const char* python_command = "./venv_test/bin/python -u detection.py";
+    // Construct the command to execute the Python script with the video source as an argument.
+    // The video_source string is quoted to handle potential special characters in the URL.
+    std::string command = "./venv_test/bin/python -u detection.py \"" + video_source + "\"";
 
-    std::cerr << "C++: Starting Python detection script for single shot..." << std::endl;
+    std::cerr << "C++: Starting Python detection script with source: " << video_source << std::endl;
 
     std::string python_output;
     try {
-        python_output = exec(python_command);
+        python_output = exec(command.c_str());
     } catch (const std::runtime_error& e) {
         std::cerr << "C++: Error during Python script execution: " << e.what() << std::endl;
         return "ERROR: Python script execution failed";

@@ -11,6 +11,9 @@ mainwidget::mainwidget(QWidget *parent)
 {
     ui->setupUi(this);
 
+    // Set default detection URL
+    m_detectionUrl = "http://127.0.0.1:8081/?action=stream";
+
     scene1 = new QGraphicsScene(this);
     scene2 = new QGraphicsScene(this);
 
@@ -40,15 +43,27 @@ mainwidget::~mainwidget()
     }
 }
 
+void mainwidget::setDetectionUrl(const QString& url)
+{
+    m_detectionUrl = url;
+    qDebug() << "Detection URL set to:" << m_detectionUrl;
+}
+
 void mainwidget::on_pushButton_clicked()
 {
-    qDebug() << "Starting client process...";
+    qDebug() << "Starting client process with URL:" << m_detectionUrl;
     if (m_process->state() == QProcess::Running) {
         m_process->kill();
         m_process->waitForFinished();
     }
     m_process->setWorkingDirectory("../../client");
     m_process->setProgram("./main");
+
+    // Pass the video stream URL as an argument
+    QStringList args;
+    args << m_detectionUrl;
+    m_process->setArguments(args);
+
     m_process->start();
 }
 

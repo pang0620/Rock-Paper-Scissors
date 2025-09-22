@@ -2,6 +2,8 @@
 #include "ui_mainwidget.h"
 #include <QImage>
 #include <QPixmap>
+#include <QProcess>
+#include <QDebug>
 
 mainwidget::mainwidget(QWidget *parent)
     : QWidget(parent)
@@ -15,8 +17,14 @@ mainwidget::mainwidget(QWidget *parent)
     ui->graphicsView->setScene(scene1);
     ui->graphicsView_2->setScene(scene2);
 
+    m_process = new QProcess(this);
+
     connect(&timer1, &QTimer::timeout, this, &mainwidget::updateFrame1);
     connect(&timer2, &QTimer::timeout, this, &mainwidget::updateFrame2);
+
+    connect(m_process, &QProcess::readyReadStandardOutput, this, &mainwidget::onReadyReadStandardOutput);
+    connect(m_process, &QProcess::readyReadStandardError, this, &mainwidget::onReadyReadStandardError);
+    connect(m_process, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished), this, &mainwidget::onProcessFinished);
 }
 
 mainwidget::~mainwidget()
@@ -24,6 +32,24 @@ mainwidget::~mainwidget()
     if (cap1.isOpened()) cap1.release();
     if (cap2.isOpened()) cap2.release();
     delete ui;
+
+    if (m_process->state() == QProcess::Running)
+    {
+        m_process->kill();
+        m_process->waitForFinished();
+    }
+}
+
+void mainwidget::on_pushButton_clicked()
+{
+    qDebug() << "Starting client process...";
+    if (m_process->state() == QProcess::Running) {
+        m_process->kill();
+        m_process->waitForFinished();
+    }
+    m_process->setWorkingDirectory("../../../client");
+    m_process->setProgram("./main");
+    m_process->start();
 }
 
 void mainwidget::on_pushButton_2_clicked()
@@ -62,4 +88,22 @@ void mainwidget::updateFrame2()
         scene2->addPixmap(QPixmap::fromImage(img));
         ui->graphicsView_2->fitInView(scene2->itemsBoundingRect(), Qt::KeepAspectRatio);
     }
+}
+
+void mainwidget::onReadyReadStandardOutput()
+{
+    QByteArray data = m_process->readAllStandardOutput();
+    //TODO: needs parsing
+    qDebug() << "Stdout:" << data.trimmed();
+}
+
+void mainwidget::onReadyReadStandardError()
+{
+    QByteArray errorData = m_process->readAllStandardError();
+    qDebug() << "Stderr:" << errorData.trimmed();
+}
+
+void mainwidget::onProcessFinished(int exitCode, QProcess::ExitStatus exitStatus)
+{
+    qDebug() << "Process finished with exit code " << exitCode;
 }

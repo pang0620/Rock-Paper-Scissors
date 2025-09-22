@@ -14,8 +14,8 @@ int main() {
     std::string input_line;
     while (true) {
         // TODO: not here, get Input at python script?
-        std::cout << "\nC++: Waiting for input... ";
-        std::getline(std::cin, input_line);
+        //std::cout << "\nC++: Waiting for input... ";
+        //std::getline(std::cin, input_line);
 
         if (input_line == "q" || input_line == "Q") {
             std::cout << "C++: Exiting demo." << std::endl;

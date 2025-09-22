@@ -5,6 +5,8 @@
 #include <QTimer>
 #include <QGraphicsScene>
 #include <opencv2/opencv.hpp>
+#include <QProcess>
+#include <QDebug>
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class mainwidget; }
@@ -19,9 +21,15 @@ public:
     ~mainwidget();
 
 private slots:
-    void on_pushButton_2_clicked();   // Camera Open 버튼
     void updateFrame1();
     void updateFrame2();
+
+    void on_pushButton_clicked();	// detection process 실행 버튼
+    void on_pushButton_2_clicked();   // Camera Open 버튼
+
+    void onReadyReadStandardOutput();
+    void onReadyReadStandardError();
+    void onProcessFinished(int exitCode, QProcess::ExitStatus exitStatus);
 
 private:
     Ui::mainwidget *ui;
@@ -33,6 +41,8 @@ private:
 
     QGraphicsScene *scene1;
     QGraphicsScene *scene2;
+
+    QProcess *m_process;
 
     bool cameraOpened = false;
 };

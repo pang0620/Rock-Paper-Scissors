@@ -47,7 +47,7 @@ void mainwidget::on_pushButton_clicked()
         m_process->kill();
         m_process->waitForFinished();
     }
-    m_process->setWorkingDirectory("../../../client");
+    m_process->setWorkingDirectory("../../client");
     m_process->setProgram("./main");
     m_process->start();
 }
@@ -56,9 +56,9 @@ void mainwidget::on_pushButton_2_clicked()
 {
     if (!cameraOpened) {
         // 두 개의 카메라 스트리밍 URL
-        //cap1.open("http://127.0.0.1:8080/video");   // 첫 번째 카메라
-        cap1.open(0);
-        cap2.open("http://192.168.0.101:8080/video"); // 두 번째 카메라 (IP 수정)
+        cap1.open("http://10.10.16.36:8081/?action=stream");   // 첫 번째 카메라
+        //cap1.open(0);
+        cap2.open("http://10.10.16.37:8081/?action=stream");    // 두 번째 카메라 (IP 수정)
 
         if (cap1.isOpened()) timer1.start(30);
         if (cap2.isOpened()) timer2.start(30);

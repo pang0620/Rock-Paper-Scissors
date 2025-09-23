@@ -40,6 +40,7 @@ mainwidget::mainwidget(QWidget *parent)
     m_userId = "37";
     m_userPw = "PASSWD";
     m_isReadyForHand = false;
+    m_isOpponentStreamVisible = false;
 
     connect(m_networkManager, &NetworkManager::connected, this, &mainwidget::onServerConnected);
     connect(m_networkManager, &NetworkManager::disconnected, this, &mainwidget::onServerDisconnected);
@@ -90,7 +91,8 @@ void mainwidget::onServerDisconnected()
 {
     ui->textEdit->append("Disconnected from server.");
     m_isReadyForHand = false;
-    // m_currentRound = 0; // m_currentRound is managed by NetworkManager
+    m_isOpponentStreamVisible = false; // 연결 끊기면 스트림 숨김
+    scene2->clear(); // 화면 비우기
 
     // Reset button states for a new connection attempt
     ui->pushButton_2->setEnabled(true); // Re-enable connect button
@@ -107,6 +109,8 @@ void mainwidget::onOpponentLeft()
 {
     ui->textEdit->append("Opponent left the game. Initiating auto-reconnect sequence.");
     m_reconnecting = true; // Set flag for auto-reconnection
+    m_isOpponentStreamVisible = false; // 상대방 떠나면 스트림 숨김
+    scene2->clear(); // 화면 비우기
 
     // Kill any running hand detection process
     if (m_process->state() == QProcess::Running) {
@@ -138,8 +142,10 @@ void mainwidget::onRoundStarted(int roundNumber, int opponentId)
     cap2.open("http://127.0.0.1:8081/?action=stream");
     if (cap2.isOpened()) {
         timer2.start(30);
+        m_isOpponentStreamVisible = true;
     } else {
         qDebug() << "UI: Failed to open opponent's camera stream for ID:" << m_opponentId;
+        m_isOpponentStreamVisible = false;
         // Optionally, show a QMessageBox or handle this error more gracefully
     }
 
@@ -259,6 +265,11 @@ void mainwidget::updateFrame1()
 
 void mainwidget::updateFrame2()
 {
+    if (!m_isOpponentStreamVisible) { // 플래그가 false이면 아무것도 표시하지 않음
+        scene2->clear(); // 화면 비우기
+        return;
+    }
+
     cv::Mat frame;
     if (cap2.isOpened() && cap2.read(frame)) {
         if (ui->graphicsView_2->isVisible()) {

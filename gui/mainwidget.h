@@ -51,6 +51,7 @@ private slots:
 
 private:
     Ui::mainwidget *ui;
+    bool m_isOpponentStreamVisible;
     cv::VideoCapture cap1;
     cv::VideoCapture cap2;
     QTimer timer1;

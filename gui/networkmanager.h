@@ -25,6 +25,7 @@ signals:
     void roundStarted(int roundNumber, int opponentId);
     void gameResultReceived(const QString& result);
     void opponentLeft();
+    void opponentReady(const QString& opponentId);
     void serverError(const QString& error);
 
 private slots:

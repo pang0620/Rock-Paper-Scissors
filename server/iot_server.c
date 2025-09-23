@@ -119,6 +119,8 @@ static void maybe_judge_and_advance(void) {
     broadcast_to_players("RESULT:%d:%s:%s:%s:%d:%d",
         game.round, game.p1_hand, game.p2_hand, win, game.score1, game.score2);
 
+    sleep(5); // 5초 딜레이
+
     // 다음 라운드
     game.round++;
     game.p1_hand[0] = '\0';
@@ -347,9 +349,11 @@ static void *clnt_connection(void *arg) {
             if (client_info->fd == game.p1_fd) {
                 strncpy(game.p1_hand, hand, sizeof(game.p1_hand)-1);
                 game.p1_hand[sizeof(game.p1_hand)-1] = '\0';
+                send_line(game.p2_fd, "OPPONENT_READY:%s", game.p1_id); // p1이 손을 냈으니 p2에게 알림
             } else if (client_info->fd == game.p2_fd) {
                 strncpy(game.p2_hand, hand, sizeof(game.p2_hand)-1);
                 game.p2_hand[sizeof(game.p2_hand)-1] = '\0';
+                send_line(game.p1_fd, "OPPONENT_READY:%s", game.p2_id); // p2가 손을 냈으니 p1에게 알림
             } else {
                 pthread_mutex_unlock(&game_mtx);
                 send_line(client_info->fd, "ERROR:NOT_IN_ROOM");

@@ -99,6 +99,9 @@ void NetworkManager::onReadyReadSocket()
             emit roundStarted(m_currentRound, opponentId);
         } else if (trimmedResponse.startsWith("RESULT:")) {
             emit gameResultReceived(trimmedResponse);
+        } else if (trimmedResponse.startsWith("OPPONENT_READY:")) {
+            QString opponentId = trimmedResponse.section(':', 1, 1);
+            emit opponentReady(opponentId);
         } else if (trimmedResponse.startsWith("ERROR:")) {
             emit serverError(trimmedResponse);
         } else if (trimmedResponse == "OPPONENT_LEFT") {

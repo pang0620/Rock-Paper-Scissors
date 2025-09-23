@@ -10,6 +10,7 @@
 #include <QFile>
 #include <QDir>
 #include "networkmanager.h"
+#include <QCoreApplication>
 #include <QTextEdit>
 
 QT_BEGIN_NAMESPACE
@@ -42,6 +43,7 @@ private slots:
     void onRoundStarted(int roundNumber, int opponentId);
     void onGameResultReceived(const QString& result);
     void onServerError(const QString& error);
+    void onOpponentReady(const QString& opponentId);
     void onOpponentLeft();
 
 private slots:
@@ -73,9 +75,7 @@ private:
     bool m_reconnecting = false; // Flag to indicate automatic reconnection is in progress
 
     bool cameraOpened = false;
-
-    static QTextEdit* s_logTextEdit; // Static pointer to the log text edit
-    static void customMessageHandler(QtMsgType type, const QMessageLogContext &context, const QString &msg);
+    QPixmap m_placeholderImage; // Placeholder image for opponent's view
 };
 
 #endif // MAINWIDGET_H

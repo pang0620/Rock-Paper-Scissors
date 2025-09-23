@@ -10,46 +10,11 @@
 #include <QMessageBox>
 #include <QTextEdit>
 
-// Initialize static member
-QTextEdit* mainwidget::s_logTextEdit = nullptr;
-
-void mainwidget::customMessageHandler(QtMsgType type, const QMessageLogContext &context, const QString &msg)
-{
-    Q_UNUSED(context);
-    QString formattedMsg = msg;
-
-    switch (type) {
-    case QtDebugMsg:
-        formattedMsg = QString("[Debug] %1").arg(msg);
-        break;
-    case QtWarningMsg:
-        formattedMsg = QString("[Warning] %1").arg(msg);
-        break;
-    case QtCriticalMsg:
-        formattedMsg = QString("[Critical] %1").arg(msg);
-        break;
-    case QtFatalMsg:
-        formattedMsg = QString("[Fatal] %1").arg(msg);
-        break;
-    case QtInfoMsg:
-        formattedMsg = QString("[Info] %1").arg(msg);
-        break;
-    }
-
-    if (mainwidget::s_logTextEdit) {
-        mainwidget::s_logTextEdit->append(formattedMsg);
-    }
-}
-
 mainwidget::mainwidget(QWidget *parent)
     : QWidget(parent)
     , ui(new Ui::mainwidget)
 {
     ui->setupUi(this);
-
-    // Set up custom message handler
-    s_logTextEdit = ui->textEdit; // Assign the UI's textEdit to the static pointer
-    qInstallMessageHandler(customMessageHandler);
 
     m_detectionUrl = "http://127.0.0.1:8081/?action=stream";
 
@@ -70,7 +35,7 @@ mainwidget::mainwidget(QWidget *parent)
 
     // --- Network & Game State Initialization --- //
     m_networkManager = new NetworkManager(this);
-    m_serverIp = "127.0.0.1";
+    m_serverIp = "10.10.16.37";
     m_serverPort = 5000;
     m_userId = "37";
     m_userPw = "PASSWD";
@@ -82,9 +47,7 @@ mainwidget::mainwidget(QWidget *parent)
     connect(m_networkManager, &NetworkManager::gameResultReceived, this, &mainwidget::onGameResultReceived);
     connect(m_networkManager, &NetworkManager::serverError, this, &mainwidget::onServerError);
     connect(m_networkManager, &NetworkManager::opponentLeft, this, &mainwidget::onOpponentLeft);
-
-    // Initially hide opponent's view
-    ui->graphicsView_2->setVisible(false);
+    connect(m_networkManager, &NetworkManager::opponentReady, this, &mainwidget::onOpponentReady);
 
     // Set initial button states
     ui->pushButton->setEnabled(false); // Disable Ready button initially
@@ -113,7 +76,7 @@ void mainwidget::setDetectionUrl(const QString& url)
 // --- New Slots for NetworkManager Signals --- //
 void mainwidget::onServerConnected()
 {
-    qDebug() << "UI: Connected to server!";
+    ui->textEdit->append("Connected to server!");
     ui->pushButton_2->setEnabled(false);
 
     // Send authentication immediately after connecting
@@ -125,10 +88,9 @@ void mainwidget::onServerConnected()
 
 void mainwidget::onServerDisconnected()
 {
-    qDebug() << "UI: Disconnected from server.";
+    ui->textEdit->append("Disconnected from server.");
     m_isReadyForHand = false;
     // m_currentRound = 0; // m_currentRound is managed by NetworkManager
-    ui->graphicsView_2->setVisible(false);
 
     // Reset button states for a new connection attempt
     ui->pushButton_2->setEnabled(true); // Re-enable connect button
@@ -143,7 +105,7 @@ void mainwidget::onServerDisconnected()
 
 void mainwidget::onOpponentLeft()
 {
-    qDebug() << "UI: Opponent left the game. Initiating auto-reconnect sequence.";
+    ui->textEdit->append("Opponent left the game. Initiating auto-reconnect sequence.");
     m_reconnecting = true; // Set flag for auto-reconnection
 
     // Kill any running hand detection process
@@ -156,19 +118,24 @@ void mainwidget::onOpponentLeft()
     m_networkManager->disconnectFromServer();
 }
 
+void mainwidget::onOpponentReady(const QString& opponentId)
+{
+    qDebug() << "UI: Opponent" << opponentId << "is Ready! Showing opponent's camera.";
+}
+
 void mainwidget::onRoundStarted(int roundNumber, int opponentId)
 {
-    qDebug() << "UI: Round" << roundNumber << "started! Opponent ID:" << opponentId;
+    ui->textEdit->append(QString("Round %1 started! Opponent ID: %2").arg(roundNumber).arg(opponentId));
     m_opponentId = opponentId;
     qDebug() << "MainWidget: onRoundStarted received opponentId parameter:" << opponentId;
     m_isReadyForHand = true;
     qDebug() << "UI: Round" << roundNumber << "started! Starting client process for detection.";
-    ui->graphicsView_2->setVisible(true);
     ui->pushButton->setEnabled(true);
 
     // Open cap2 here, as m_opponentId is now known
     qDebug() << "MainWidget: Constructing cap2 URL with m_opponentId:" << m_opponentId;
-    cap2.open(QString("http://10.10.16.%1:8081/?action=stream").arg(m_opponentId).toStdString());
+    //cap2.open(QString("http://10.10.16.%1:8081/?action=stream").arg(m_opponentId).toStdString());
+    cap2.open("http://127.0.0.1:8081/?action=stream");
     if (cap2.isOpened()) {
         timer2.start(30);
     } else {
@@ -191,13 +158,27 @@ void mainwidget::onRoundStarted(int roundNumber, int opponentId)
 
 void mainwidget::onGameResultReceived(const QString& result)
 {
-    qDebug() << "UI: Game Result:" << result;
-    ui->graphicsView_2->setVisible(false);
+    QStringList parts = result.split(':');
+    if (parts.size() >= 7 && parts[0] == "RESULT") {
+        int round = parts[1].toInt();
+        QString p1_hand = parts[2];
+        QString p2_hand = parts[3];
+        QString winner = parts[4];
+        int score1 = parts[5].toInt();
+        int score2 = parts[6].toInt();
+
+        ui->textEdit->append(QString("--- Round %1 Result ---").arg(round));
+        ui->textEdit->append(QString("Player 1 Hand: %1, Player 2 Hand: %2").arg(p1_hand).arg(p2_hand));
+        ui->textEdit->append(QString("Winner: %1 (Score: %2 - %3)").arg(winner).arg(score1).arg(score2));
+        ui->textEdit->append("-----------------------");
+    } else {
+        ui->textEdit->append(QString("Game Result: %1 (Malformed)").arg(result));
+    }
 }
 
 void mainwidget::onServerError(const QString& error)
 {
-    qDebug() << "UI: Server Error:" << error;
+    ui->textEdit->append(QString("Server Error: %1").arg(error));
     // For connection refused, also reset the UI
     if (error.contains("Connection refused")) {
         onServerDisconnected();
@@ -207,19 +188,19 @@ void mainwidget::onServerError(const QString& error)
 // --- UI Button Slots --- //
 void mainwidget::on_pushButton_clicked()
 {
-    qDebug() << "'Ready' button clicked. Sending gesture:" << m_lastDetectedGesture;
+    ui->textEdit->append("'Ready' button clicked.");
 
     if (m_lastDetectedGesture != "Nothing" && m_lastDetectedGesture != "Unknown" && !m_lastDetectedGesture.isEmpty()) {
         m_networkManager->sendHandToServer(m_lastDetectedGesture);
         ui->pushButton->setEnabled(false);
     } else {
-        qDebug() << "No valid gesture to send. Show a valid hand to the camera.";
+        ui->textEdit->append("No valid gesture to send. Show a valid hand to the camera.");
     }
 }
 
 void mainwidget::on_pushButton_2_clicked()
 {
-    qDebug() << "'Camera Open/Close' button clicked.";
+    ui->textEdit->append("'Camera Open/Close' button clicked.");
 
     if (!cameraOpened) {
         // Open camera and connect to server
@@ -243,6 +224,7 @@ void mainwidget::on_pushButton_2_clicked()
 
 void mainwidget::startConnectionSequence()
 {
+    ui->textEdit->append(QString("Attempting to connect to server at %1:%2").arg(m_serverIp).arg(m_serverPort));
     m_networkManager->connectToServer(m_serverIp, m_serverPort, m_userId, m_userPw);
     ui->pushButton_2->setEnabled(false);
 
@@ -278,7 +260,7 @@ void mainwidget::updateFrame1()
 void mainwidget::updateFrame2()
 {
     cv::Mat frame;
-    if (cap2.read(frame)) {
+    if (cap2.isOpened() && cap2.read(frame)) {
         if (ui->graphicsView_2->isVisible()) {
             cv::cvtColor(frame, frame, cv::COLOR_BGR2RGB);
             QImage img((const uchar*)frame.data, frame.cols, frame.rows, frame.step, QImage::Format_RGB888);

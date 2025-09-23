@@ -17,3 +17,8 @@ SOURCES       = main.cpp \
 2
 FORMS += \
     mainwidget.ui
+
+DISTFILES +=
+
+RESOURCES += \
+    resource.qrc

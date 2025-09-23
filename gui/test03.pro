@@ -9,12 +9,11 @@ INCLUDEPATH += /usr/include/opencv4
 LIBS += -L/usr/lib/x86_64-linux-gnu \
         -lopencv_core -lopencv_highgui -lopencv_videoio -lopencv_imgproc -lopencv_imgcodecs
 
-SOURCES += \
-    main.cpp \
-    mainwidget.cpp
-
-HEADERS += \
-    mainwidget.h
+HEADERS       = mainwidget.h \
+                networkmanager.h
+SOURCES       = main.cpp \
+                mainwidget.cpp \
+                networkmanager.cpp
 2
 FORMS += \
     mainwidget.ui

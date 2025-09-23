@@ -7,9 +7,10 @@
 #include <opencv2/opencv.hpp>
 #include <QProcess>
 #include <QDebug>
-#include <QTcpSocket> // Added for QTcpSocket
 #include <QFile>
 #include <QDir>
+#include "networkmanager.h"
+#include <QTextEdit>
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class mainwidget; }
@@ -35,15 +36,16 @@ private slots:
     void onReadyReadStandardError();
     void onProcessFinished(int exitCode, QProcess::ExitStatus exitStatus);
 
-    // --- Slots for QTcpSocket --- //
-    void onConnected();
-    void onDisconnected();
-    void onReadyReadSocket();
-    void onErrorOccurred(QAbstractSocket::SocketError socketError);
+    // --- Slots for NetworkManager signals --- //
+    void onServerConnected();
+    void onServerDisconnected();
+    void onRoundStarted(int roundNumber, int opponentId);
+    void onGameResultReceived(const QString& result);
+    void onServerError(const QString& error);
+    void onOpponentLeft();
 
-    // --- Methods for Server Communication --- //
-    void connectToServer();
-    void sendHandToServer(const QString& hand);
+private slots:
+    void startConnectionSequence(); // New slot for initiating connection
 
 private:
     Ui::mainwidget *ui;
@@ -58,18 +60,22 @@ private:
     QProcess *m_process;
     QString m_detectionUrl;
 
-    // --- Server Communication --- //
-    QTcpSocket *m_socket;
-    QString m_serverIp; // Hardcoded for now
-    quint16 m_serverPort; // Hardcoded for now
-    QString m_userId; // Hardcoded for now
-    QString m_userPw; // Hardcoded for now
+    // --- Network & Game State --- //
+    NetworkManager *m_networkManager;
+    QString m_serverIp;
+    quint16 m_serverPort;
+    QString m_userId;
+    QString m_userPw;
 
-    int m_currentRound; // Current game round from server
+    int m_opponentId; // ID of the opponent
     bool m_isReadyForHand; // Flag: true when START_ROUND is received
     QString m_lastDetectedGesture; // Holds the last detected gesture
+    bool m_reconnecting = false; // Flag to indicate automatic reconnection is in progress
 
     bool cameraOpened = false;
+
+    static QTextEdit* s_logTextEdit; // Static pointer to the log text edit
+    static void customMessageHandler(QtMsgType type, const QMessageLogContext &context, const QString &msg);
 };
 
 #endif // MAINWIDGET_H

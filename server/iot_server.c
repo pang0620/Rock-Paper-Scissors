@@ -23,7 +23,7 @@
 #include <stdarg.h>
 
 #define BUF_SIZE   1024
-#define MAX_CLNT   32
+#define MAX_CLNT   256
 #define ID_SIZE    32
 #define ARR_CNT    5
 
@@ -124,7 +124,8 @@ static void maybe_judge_and_advance(void) {
     game.p1_hand[0] = '\0';
     game.p2_hand[0] = '\0';
 
-    broadcast_to_players("START_ROUND:%d", game.round);
+    send_line(game.p1_fd, "START_ROUND:%d:%s", game.round, game.p2_id); // p1에게 p2의 ID 전송
+    send_line(game.p2_fd, "START_ROUND:%d:%s", game.round, game.p1_id); // p2에게 p1의 ID 전송
 }
 
 /* -------------- 메인 -------------- */
@@ -276,7 +277,8 @@ int main(int argc, char *argv[]) {
             strncpy(game.p2_id, client_info[found].id, ID_SIZE-1);
             send_line(clnt_sock, "WELCOME:2");
             // 두 명 모였으니 라운드 시작
-            broadcast_to_players("START_ROUND:%d", game.round);
+            send_line(game.p1_fd, "START_ROUND:%d:%s", game.round, game.p2_id); // p1에게 p2의 ID 전송
+            send_line(game.p2_fd, "START_ROUND:%d:%s", game.round, game.p1_id); // p2에게 p1의 ID 전송
         } else {
             // 방이 찼음 -> 거절
             pthread_mutex_unlock(&game_mtx);

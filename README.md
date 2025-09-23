@@ -7,3 +7,5 @@ opencv cpp & Qt based online 1:1 RPS
 !!! and your ID (for IP address) !!!
 
 !!! cannot configure now (only at codes) !!! coming soon
+
+!!! for run, mjpg-streamer shoulda be running already !!! 

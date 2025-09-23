@@ -72,7 +72,7 @@ mainwidget::mainwidget(QWidget *parent)
     m_networkManager = new NetworkManager(this);
     m_serverIp = "127.0.0.1";
     m_serverPort = 5000;
-    m_userId = "36";
+    m_userId = "37";
     m_userPw = "PASSWD";
     m_isReadyForHand = false;
 

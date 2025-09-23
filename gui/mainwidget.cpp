@@ -6,6 +6,10 @@
 #include <QDebug>
 #include <QTcpSocket>
 #include <QHostAddress>
+#include <QDir>
+#include <cstdlib>
+#include <QMessageBox>
+#include <QFile>
 
 mainwidget::mainwidget(QWidget *parent)
     : QWidget(parent)
@@ -51,8 +55,6 @@ mainwidget::mainwidget(QWidget *parent)
     // Initially hide opponent's view
     ui->graphicsView_2->setVisible(false);
 
-    // Set initial button states
-    ui->pushButton->setEnabled(false); // Disable Ready button initially
     ui->pushButton_2->setEnabled(true);  // Enable Camera Open button initially
 }
 
@@ -68,14 +70,14 @@ mainwidget::~mainwidget()
         m_process->waitForFinished();
     }
 
-    // Ensure socket is properly closed on destruction
-    if (m_socket->isOpen()) {
-        m_socket->disconnectFromHost();
-        m_socket->waitForDisconnected();
+    
+        // Ensure socket is properly closed on destruction
+        if (m_socket->isOpen()) {
+            m_socket->disconnectFromHost();
+            m_socket->waitForDisconnected();
+        }
+        delete m_socket;
     }
-    delete m_socket;
-}
-
 void mainwidget::setDetectionUrl(const QString& url)
 {
     m_detectionUrl = url;
@@ -206,10 +208,16 @@ void mainwidget::on_pushButton_2_clicked()
     if (!cameraOpened) {
         // 두 개의 카메라 스트리밍 URL
         cap1.open("http://127.0.0.1:8081/?action=stream");   // 첫 번째 카메라
+
+        if (!cap1.isOpened()) {
+            QMessageBox::critical(this, "카메라 오류", "카메라 스트림을 열 수 없습니다.\n mjpg-streamer가 8081 포트에서 실행 중인지 확인하세요.");
+            exit(1);
+        }
+
         //cap1.open(0);
         cap2.open("http://10.10.16.36:8081/?action=stream");    // 두 번째 카메라 (IP 수정)
 
-        if (cap1.isOpened()) timer1.start(30);
+        timer1.start(30);
         if (cap2.isOpened()) timer2.start(30);
 
         cameraOpened = true;

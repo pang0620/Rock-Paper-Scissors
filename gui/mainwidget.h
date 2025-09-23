@@ -8,6 +8,8 @@
 #include <QProcess>
 #include <QDebug>
 #include <QTcpSocket> // Added for QTcpSocket
+#include <QFile>
+#include <QDir>
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class mainwidget; }
@@ -45,7 +47,6 @@ private slots:
 
 private:
     Ui::mainwidget *ui;
-
     cv::VideoCapture cap1;
     cv::VideoCapture cap2;
     QTimer timer1;

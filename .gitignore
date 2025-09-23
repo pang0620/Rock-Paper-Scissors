@@ -5,6 +5,7 @@ env
 venv_test
 
 gui/Build
+gui/build
 gui/test03.pro.user
 
 # For Mac
@@ -168,3 +169,8 @@ cython_debug/
 
 *.pro.user
 *.pro.user.*
+
+# mjpg-streamer build artifacts
+/vendor/mjpg-streamer/mjpg_streamer
+/vendor/mjpg-streamer/*.so
+/vendor/mjpg-streamer/www
